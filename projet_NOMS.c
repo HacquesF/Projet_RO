@@ -45,6 +45,18 @@ typedef struct {
 	int **C; /* distancier (les lignes et colonnes 0 correspondent au dépôt) */
 } donnees;
 
+/* Structure reprentant les point traverse */
+typedef struct {
+  int point;
+  maillonPoint * suite;
+} maillonPoint;
+//Probleme rearangement?
+/* Structure contenant un trajet */
+typedef struct {
+  maillonPoint depart;
+  int longueur;
+} trajet;
+//-------------Nb trajet totale possible Somme de i=1 a nblieux ( n!/(i!(n-i)!))-----------
 /* lecture des donnees */
 
 void lecture_data(char *file, donnees *p)
