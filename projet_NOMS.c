@@ -45,20 +45,82 @@ typedef struct {
 	int **C; /* distancier (les lignes et colonnes 0 correspondent au dépôt) */
 } donnees;
 
-/* Structure reprentant les point traverse */
-typedef struct {
-  int point;
-  maillonPoint * suite;
-} maillonPoint;
-//Probleme rearangement?
 /* Structure contenant un trajet */
 typedef struct {
-  maillonPoint depart;
-  int longueur;
+  char* chemin;//les points a traverser
+  int remplissage;//Le total d eau dans le reservoir
+  int longueur;//La longueur minimale pour faire la boucle
 } trajet;
 //-------------Nb trajet totale possible Somme de i=1 a nblieux ( n!/(i!(n-i)!))-----------
-/* lecture des donnees */
 
+//Calcul d un factoriel, necessaire au nombre de regroupement max
+int facto(int n){
+  if (n==0)
+    return 1;
+  int res = 1;
+  int i;
+  for(i=2;i<=n;++i)
+    res = res*i;
+  return res;
+}
+
+/* enumeration des regroupements */
+void enumererRegroupe(donnees *p, trajet *t){
+  int i;
+  //On compte le nombre de trajet max
+  int totT=0;
+  int factoNblieux= facto(p->nblieux);//Pour reduire le nombre de calcul
+  for(i=1;i<p->nblieux;++i)
+    totT+= factoNblieux/( facto(i) * facto(p->nblieux-i))
+  
+  ++ totT;// Le regroupement de nblieux
+  int ** lesRegroup;
+  lesRegroup=(int **) malloc (totT * sizeof(int *));
+  for(i=0;i <= p->nblieux;++i) lesRegroup[i] = (int *) malloc ( (p->nblieux+1) * sizeof(int));
+  //On a le tableau de dimension 2 pouvant tout contenir
+  //-----------------------Ge--Pa--Teste----------------------------------
+  /* TODO
+     Mettre un tmp de remplissage pour savoir si on prend le chemin où le balance
+     Compter le nombre de regroupement pour ne pas sortir du tableau quand on le relit
+   */
+  int taille, actuel, depart, ligne;
+  int bLigne, bDepart;//On les considere comme des booleens
+  taille = 1;
+  ligne = 0;
+  //Pour  l instant on fait sans enlever les trop plein
+  while( taille <= p->nblieux ){
+    bDepart = 1;
+    depart= 1;
+    while( bDepart == 1 ){//On a tous les regoupement de taille taille
+      j=2;//On commence a la colonne 2 car 0 pour la taille et 1 pour le depart
+      lesRegroup[ligne][0]= taille; // On instancie la taille
+      lesRegroup[ligne][1]= depart;
+      bLigne = 1;
+      actuel = 1;
+      while( bLigne == 1){//On a tout les regroupements de taille taille commencant a depart
+	if( actuel > p->nblieux ){
+	  bLigne = 0;
+	}else if( j> taille ){//Si on a suffisament de chiffre
+	   ++ligne;//On change de ligne
+	   lesRegroup[ligne][0]= taille;//On met la taille de la nouvel ligne
+	   lesRegroup[ligne][1]= depart;//On lui met son point de depart
+	   j=2;//On se prepare pour la prochaine case
+	}else{//Cas standard
+	  lesRegroup[ligne][j]= actuel;//On met un chiffre dans la ligne
+	  ++j;//On passe a la case suivante
+	  ++actuel;//On passe au chiffre suivant
+	}
+      }
+      depart ++;//On reste de la meme taille mais on augmente le nombre de depart
+      if(depart+taille > p->nblieux+1){//On ne pourra pas faire de regroupement commencant par ce nmbre et de cette taille (12345=> depart 1 + taille 5 == nblieux 5 + 1 car on, commence a 1
+	bDepart = 0;//On doit sortir pour augmenter la taille
+      }
+    }
+    taille++;//On augmente la taille
+  }
+}
+
+/* lecture des donnees */ 
 void lecture_data(char *file, donnees *p)
 {
 	int i,j;
