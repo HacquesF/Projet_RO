@@ -74,6 +74,7 @@ void enumererRegroupe(donnees *p, trajet *t){
     totT+= factoNblieux/( facto(i) * facto(p->nblieux-i))
   
   ++ totT;// Le regroupement de nblieux
+  ++totT;//Une case supplementaire au cas où on a tous les regroupement pour le 0
   int ** lesRegroup;
   lesRegroup=(int **) malloc (totT * sizeof(int *));
   for(i=0;i <= p->nblieux;++i) lesRegroup[i] = (int *) malloc ( (p->nblieux+1) * sizeof(int));
@@ -117,6 +118,17 @@ void enumererRegroupe(donnees *p, trajet *t){
       }
     }
     taille++;//On augmente la taille
+  }
+  lesRegroup[ligne][0]= 0;//Sert de stop pour ne pas lire trop loin
+}
+void lectureReg(int** reg){
+  int i,ligne;
+  ligne = 0;
+  while(reg[ligne][0]!=0){
+    for(i=1;i<=reg[ligne][0];++i){
+      printf("%d, ",reg[ligne][i]); 
+    }
+    put_ligne("");
   }
 }
 
