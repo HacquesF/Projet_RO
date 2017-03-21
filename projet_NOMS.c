@@ -57,11 +57,8 @@ typedef struct {
 int facto(int n){
   if (n==0)
     return 1;
-  int res = 1;
-  int i;
-  for(i=2;i<=n;++i)
-    res = res*i;
-  return res;
+  else
+    return n*facto(n-1);
 }
 
 /* enumeration des regroupements */
