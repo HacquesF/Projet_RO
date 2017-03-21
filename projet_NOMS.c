@@ -69,20 +69,23 @@ int** enumererRegroupe(donnees *p){
   int i,j;
   //On compte le nombre de trajet max
   int totT=0;
-  int factoNblieux= facto(p->nblieux);//Pour reduire le nombre de calcul
-  for(i=1;i<p->nblieux;++i)
-    totT+= factoNblieux/( facto(i) * facto(p->nblieux-i));
+  //p->nblieux semble compter le camp de base, or il n est pas dans les regroupement, a voir si ne pas le -1
+  int nblieux = p->nblieux -1;
+  int factoNblieux= facto(nblieux);//Pour reduire le nombre de calcul
+  for(i=1;i<nblieux;++i)
+    totT+= factoNblieux/( facto(i) * facto(nblieux-i));
   
   ++ totT;// Le regroupement de nblieux
-  ++totT;//Une case supplementaire au cas où on a tous les regroupement pour le 0
+  //++totT;//Une case supplementaire au cas où on a tous les regroupement pour le 0
+  //Il semblerait que le tableau aille jusque [totT] en partant de 0 donc totT+1 case
   int ** lesRegroup;
   lesRegroup=(int **) malloc (totT * sizeof(int *));
-  for(i=0;i <= totT;++i) lesRegroup[i] = (int *) malloc ( (p->nblieux+1) * sizeof(int));
+  for(i=0;i <= totT;++i) lesRegroup[i] = (int *) malloc ( (nblieux+1) * sizeof(int));
   //On a le tableau de dimension 2 pouvant tout contenir
   int taille, actuel, depart, ligne;
   int bLigne, bDepart;//On les considere comme des booleens
-  taille = 1;
-  ligne = 0;
+  // taille = 1;
+  //ligne = 0;
   //Pour  l instant on fait sans enlever les trop plein
   //-----------------------Ca fait de la merde--------------------------------
   //-----------------------Ge--Pa--Teste----------------------------------
@@ -123,6 +126,77 @@ int** enumererRegroupe(donnees *p){
   /* } */
   /* lesRegroup[ligne][0]= 0;//Sert de stop pour ne pas lire trop loin */
   //---------------------------Essaie numero 2------------------------------------
+  //On insert la premiere ligne
+  taille = 1;
+  ligne = 0;
+  lesRegroup[ligne][0]=taille;
+  lesRegroup[ligne][1]=1;
+  /*On va travailler en correction
+    Donc on verifie la ligne du dessus pour savoir si on se met apres ou si on l ecrase(ligne++ ou non)
+    On utilise la ligne du dessus pour savoir ce que contient la ligne actuel:
+                              -Si ne finit pas par nblieux alors
+			                   - on rajoute 1 a la derniere case
+			                   -sinon la prochaine ligne augmente le nombre le plus loin a droite sans que ca depasse avec la taille (pos+(nblieux-nb))<taille+1 (avec nb le nombre a mettre dans la case pos
+				       -Si le sinon arrive a 0 (case reserve a la taille) on augmente la taille et repart de 1 (simple boucle for pour remplir la ligne a 1 2 3 ..)
+    Normalement la taille ne depassera pas la taille car le compte semble être bon, sinon sauter le for principal en while taille<nblieux
+    
+   */
+  int lignePrec = 0;
+  int breakPoint,valBreak;//regarde a quel endroit on casse la chaine prec pour faire l actuel
+  for(i=0;i<totT-1;++i){
+    //On verifie que la ligne precedement ecrite ne depasse pas
+    actuel = 0;
+    for(j=0;j<lesRegroup[ligne][0];++j){
+      actuel += p->demande[ lesRegroup[ligne][j+1]];
+    }
+    lignePrec=ligne;
+    if(actuel<=p->capacite){
+      ++ligne;
+    }
+    if(lesRegroup[ lignePrec ][taille] != nblieux){//Si le dernier n'est pas nblieux
+      //On suppose que l'on ne sera pas au dessus car ca ne doit pas arriver
+      //((ligne==0) ? 0 : (ligne-1)): Cette merde sert a utiliser ligne-1 sans tomber dans le negatif
+      //Utilise un prec IDIOT
+      lesRegroup[ ligne ][0]=taille;
+      for(j=1;j<lesRegroup[lignePrec][0];++j){
+	lesRegroup[ligne][j]=lesRegroup[lignePrec][j];
+      }
+      lesRegroup[ligne][taille]=lesRegroup[lignePrec][taille]+1;
+      
+    }else{
+      //On sait que la derniere case est le nombre max
+      breakPoint=taille-1;
+      while(breakPoint>0 && lesRegroup[lignePrec][breakPoint]+1+taille-breakPoint>nblieux){
+	--breakPoint;
+      }
+      if(breakPoint>0){
+	lesRegroup[ligne][0]=taille;
+	for(j=1;j<breakPoint;++j){
+	  lesRegroup[ligne][j]=lesRegroup[lignePrec][j];
+	}
+	valBreak = lesRegroup[lignePrec][breakPoint]+1;
+	lesRegroup[ligne][breakPoint]= valBreak;
+	for(j=1;j<=taille-breakPoint;++j){
+	  lesRegroup[ligne][breakPoint+j]=valBreak+j;
+	}
+      }else{
+	++taille;
+	lesRegroup[ligne][0]=taille;
+	for(j=1;j<=taille;++j){
+	  lesRegroup[ligne][j]=j;
+	}
+      }
+    }
+  }
+  //Il faut voir si on garde la derniere entree
+  actuel = 0;
+  for(j=0;j<lesRegroup[ligne][0];++j){
+    actuel += p->demande[ lesRegroup[ligne][j+1]];
+  }
+  if(actuel<=p->capacite){
+    ++ligne;
+  }
+  lesRegroup[ligne][0]=0;
   return lesRegroup;
 }
 void lectureReg(int** reg){
