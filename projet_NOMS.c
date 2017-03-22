@@ -47,8 +47,8 @@ typedef struct {
 
 /* Structure contenant un trajet */
 typedef struct {
-  char* chemin;//les points a traverser
-  int remplissage;//Le total d eau dans le reservoir
+  int* chemin;//les points a traverser
+  int nbplace;//Le nombre de point non base visite
   int longueur;//La longueur minimale pour faire la boucle
 } trajet;
 //-------------Nb trajet totale possible Somme de i=1 a nblieux ( n!/(i!(n-i)!))-----------
@@ -77,7 +77,7 @@ int** enumererRegroupe(donnees *p){
   //Il semblerait que le tableau aille jusque [totT] en partant de 0 donc totT+1 case
   int ** lesRegroup;
   lesRegroup=(int **) malloc (totT * sizeof(int *));
-  for(i=0;i <= totT;++i) lesRegroup[i] = (int *) malloc ( (nblieux+1) * sizeof(int));
+  for(i=0;i < totT;++i) lesRegroup[i] = (int *) malloc ( (nblieux+1) * sizeof(int));
   //On a le tableau de dimension 2 pouvant tout contenir
   int taille, actuel, depart, ligne;
   int bLigne, bDepart;//On les considere comme des booleens
@@ -140,7 +140,7 @@ int** enumererRegroupe(donnees *p){
    */
   int lignePrec = 0;
   int breakPoint,valBreak;//regarde a quel endroit on casse la chaine prec pour faire l actuel
-  for(i=0;i<totT-1;++i){
+  while(taille<nblieux){
     //On verifie que la ligne precedement ecrite ne depasse pas
     actuel = 0;
     for(j=0;j<lesRegroup[ligne][0];++j){
@@ -207,6 +207,12 @@ void lectureReg(int** reg){
     puts("");
   }
 }
+/* int** allPermut(int* chem){ */
+/*   int** permut; */
+/*   int taille = chem[0]; */
+/*   permut=(int **) malloc (taille-1 * sizeof(int *)); */
+/*   for(i=0;i < taille;++i) lesRegroup[i] = (int *) malloc ( (nblieux+1) * sizeof(int)); */
+/* } */
 
 /* lecture des donnees */ 
 void lecture_data(char *file, donnees *p)
