@@ -322,6 +322,35 @@ void lecturePer(int** permut, int taille){
     ++ligne;
   }
 }
+int longueur(int *chemin, int taille, donnees *p){
+  int res = 0;
+  int dep = 0;
+  int i;
+  for(i=0;i<taille;++i){
+    res+=p->C[dep][ chemin[i] ];
+    dep = chemin[i];
+  }
+  //Retour a la base
+  res+=p->C[dep][0];
+  return res;
+}
+int bestLength(int ** permut, int taille, donnees *p){
+  int ligne = 0;
+  /* Cool mais necessite une library supp
+     int min = std::numeric_limits<int>::max();
+  */
+  int min = longueur(permut[ligne],taille,p);
+  int tmp;
+  ++ligne;
+  while(permut[ligne][0]!=-1){
+    tmp = longueur(permut[ligne],taille,p);
+    if(tmp<min){
+      min = tmp;
+    }
+    ++ligne;
+  }
+  return min;
+}
 //lecture des donnees 
 void lecture_data(char *file, donnees *p)
 {
@@ -395,7 +424,7 @@ int main(int argc, char *argv[])
 
 	/* .... */
 	int** regroup;
-
+	int** permut;
 	regroup = enumererRegroupe(&p);
 
 	lectureReg(regroup);
@@ -403,7 +432,9 @@ int main(int argc, char *argv[])
 	puts("");
 	int ligne = 0;
 	while(regroup[ligne][0]>0){
-	  lecturePer(allPermut(regroup[ligne]),regroup[ligne][0]);
+	  permut=allPermut(regroup[ligne]);
+	  lecturePer(permut,regroup[ligne][0]);
+	  printf("Chemin le plus court: %d",bestLength(permut,regroup[ligne][0],&p));
 	  puts("");
 	  ++ligne;
 	}
