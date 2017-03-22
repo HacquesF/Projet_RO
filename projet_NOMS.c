@@ -207,14 +207,115 @@ void lectureReg(int** reg){
     puts("");
   }
 }
-/* int** allPermut(int* chem){ */
-/*   int** permut; */
-/*   int taille = chem[0]; */
-/*   permut=(int **) malloc (taille-1 * sizeof(int *)); */
-/*   for(i=0;i < taille;++i) lesRegroup[i] = (int *) malloc ( (nblieux+1) * sizeof(int)); */
-/* } */
+int** allPermut(int* chem){
+  //Fait en suivant l algo de Even
+  //Heap est peut etre mieux
+  int** permut;
+  int taille = chem[0];
+  int tot = facto(taille)+1;
+  //On met un stop a la fin
+  permut=(int **) malloc (tot * sizeof(int *));
+  int i;
+  for(i=0;i < tot;++i) permut[i] = (int *) malloc ( taille * sizeof(int));
+  int* sgn = (int *) malloc (taille * sizeof(int));
+  //Le tableau contenant les signes de deplacement
+  int* tmpChem = (int *) malloc (taille * sizeof(int));
+  //Le tableau contenant la permutation en cours
+  sgn[0]=0;
+  tmpChem[0]=chem[1];
+  //On fait le premier a cote pour utiliser le meme for que sgn
+  int nbNZero = 0;
+  int ligne = 0;
+  permut[ligne][0]= tmpChem[0];
+  //De meme, on mets aa premiere la ligne
+  for(i=1;i<taille;i++){
+    sgn[i]=-1;
+    ++nbNZero;
+    tmpChem[i]=chem[i+1];
+    permut[ligne][i]= tmpChem[i];
+  }
+  ++ligne;
+  int posMax = taille-1;//Notre tableau est dans l ordre croissant par construction
+  //Sinon on peut ajouter la recherche du max dans le for du sgn
+  int tmp;
+  int newPMax=posMax;;
+  while(nbNZero >0){
+    if(sgn[posMax]<0){
+      tmp = tmpChem[posMax];
+      tmpChem[posMax]=tmpChem[posMax-1];
+      tmpChem[posMax-1]=tmp;
+      tmp = sgn[posMax];
+      sgn[posMax]= sgn[posMax-1];
+      sgn[posMax-1]=tmp;
+      --posMax;
+    }else if(sgn[posMax]>0){
+      tmp = tmpChem[posMax];
+      tmpChem[posMax]=tmpChem[posMax+1];
+      tmpChem[posMax+1]=tmp;
+      tmp = sgn[posMax];
+      sgn[posMax]= sgn[posMax+1];
+      sgn[posMax+1]=tmp;
+      ++posMax;
+    }else{
+      //Normalement on ne verra jamais mais je souhaite tester
+      printf("On a un sgn posmax nul, %d", posMax);
+    }
+    if(posMax == 0 || posMax == taille-1 || sgn[posMax]>0 && tmpChem[posMax]<tmpChem[posMax+1] || sgn[posMax]<0 && tmpChem[posMax]<tmpChem[posMax-1]){
+      sgn[posMax]=0;
+      --nbNZero;
+    }
+    //On change le signe de la premiere partie du tableau
+    //ie: si plus grand et au debut alors +1
+    for(i=0;i<posMax;++i){
+      tmp = tmpChem[i];
+      if(tmp>tmpChem[posMax]){
+	//si le signe etait zero alors on a un non zero de plus, sinon pas de changement
+	//Mais je suis presque sur qu ils doivent tous etre a zero
+	//sinon on les aurait pris en tant que max
+	nbNZero= sgn[i]==0 ? ++nbNZero : nbNZero;
+	sgn[i]= 1;
+	//on cherche en meme temps la valeur max avec un signe non zero
+	if(tmp>tmpChem[newPMax]){
+	  newPMax = i;
+	}
+      }
+      permut[ligne][i]=tmp;
+    }
+    permut[ligne][posMax]= tmpChem[posMax];
+    //On change le signe de la seconde partie du tableau
+    //ie: si plus grand et au debut alors -1
 
-/* lecture des donnees */ 
+    for(i=posMax+1;i<taille;++i){
+      tmp = tmpChem[i];
+      if(tmp>tmpChem[posMax]){
+	nbNZero= sgn[i]==0 ? ++nbNZero : nbNZero;
+	sgn[i]= -1;
+	//de meme
+	if(tmp>tmpChem[newPMax]){
+	  newPMax = i;
+	}
+      }
+      permut[ligne][i]=tmp;
+    }
+    //On affecte la nouvelle valeur
+    posMax= newPMax;
+    ++ligne;
+  }
+  permut[ligne][0]= -1;
+  //Le stop est pose
+  return permut;
+}
+void lecturePer(int** permut, int taille){
+  int i;
+  int ligne = 0;
+  while(permut[ligne][0]!=-1){
+    for(i=0;i<taille;++i){
+      printf("%d, ",permut[ligne][i]);
+    }
+    ++ligne;
+  }
+}
+//lecture des donnees 
 void lecture_data(char *file, donnees *p)
 {
 	int i,j;
@@ -276,7 +377,7 @@ int main(int argc, char *argv[])
 
 	donnees p; 
 	double temps;
-		
+	
 	/* Chargement des données à partir d'un fichier */
 	
 	lecture_data(argv[1],&p);
@@ -286,11 +387,18 @@ int main(int argc, char *argv[])
 	crono_start(); // .. et donc du chronomètre
 
 	/* .... */
+	int** regroup;
 
+	regroup = enumererRegroupe(&p);
 
-
-
-	lectureReg(enumererRegroupe(&p));
+	lectureReg(regroup);
+	printf("-----------------------------");
+	int ligne = 0;
+	/* while(regroup[ligne][0]>0){ */
+	/*   lecturePer(allPermut(regroup[ligne]),regroup[ligne][0]); */
+	/*   ++ligne; */
+	/* } */
+	lecturePer(allPermut(regroup[15]),3);
 
 
 
