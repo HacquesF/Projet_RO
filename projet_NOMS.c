@@ -318,9 +318,10 @@ void enumererRegroupe(donnees *p, maillTrajet* debut){
 //On peut meme lire les permutation avec, cool
 void lectureReg(maillTrajet* deb){
   //On ne remplit pas le premier maillon, pas super
+  //Ne va pas afficher la premiere permut, il faut faire le truc pour le premier regroup
   maillTrajet*  cour = deb->suiv;
   int i;
-  while(cour->suiv!=NULL){
+  while(cour!=NULL){
     if(cour->traj != NULL){//Sortez protege
       for(i=0;i<cour->traj->nbplace;++i){
 	printf("%d, ",cour->traj->chemin[i]);
@@ -347,18 +348,20 @@ void allPermut(trajet *t, maillTrajet *debut){
   //Le tableau contenant les signes de deplacement
   int* tmpChem = (int *) malloc (taille * sizeof(int));
   //Le tableau contenant la permutation en cours
-  sgn[0]=0;
+  
   /* tmpChem[0]=t->chemin[0]; */
   //On fait le premier a cote pour utiliser le meme for que sgn
   int nbNZero = 0;
   /* int ligne = 0; */
   trajet * cour;
-  debut = (maillTrajet *) malloc (sizeof (maillTrajet));
   maillTrajet* Mprec = debut;
   cour = (trajet *) malloc (sizeof (trajet));
   cour->chemin = (int *) malloc (taille * sizeof (int));
   /* permut[ligne][0]= tmpChem[0]; */
   //De meme, on mets aa premiere la ligne
+  sgn[0]=0;
+  tmpChem[0]=t->chemin[0];
+  cour->chemin[0]= tmpChem[0];
   for(i=1;i<taille;i++){
     sgn[i]=-1;
     ++nbNZero;
@@ -445,7 +448,7 @@ void allPermut(trajet *t, maillTrajet *debut){
     /* ++ligne; */
     res = (maillTrajet*) malloc (sizeof (maillTrajet));
     res->traj = cour;
-    res->suiv = (maillTrajet*) malloc (sizeof (maillTrajet));
+    //res->suiv = (maillTrajet*) malloc (sizeof (maillTrajet));
     Mprec->suiv = res;
     Mprec = res;
     
@@ -588,9 +591,15 @@ int main(int argc, char *argv[])
 	enumererRegroupe(&p,&deb);
 	lectureReg(&deb);
 	maillTrajet permut9;
+	trajet t;
+	t.chemin = (int *) malloc (3 * sizeof (int));
+	int i;
+	for(i=0;i<3;++i)
+	  t.chemin[i]=i+1;
+	t.nbplace = 3;
 	//CeBo
-	allPermut(deb.suiv->suiv->suiv->suiv->suiv->suiv->suiv->suiv->suiv->suiv->traj,&permut9);
-	//lectureReg(&permut9);
+	allPermut(&t,&permut9);
+	lectureReg(&permut9);
 
 
 
