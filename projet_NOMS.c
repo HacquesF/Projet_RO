@@ -231,14 +231,27 @@ void enumererRegroupe(donnees *p, maillTrajet* debut){
   //on introduit pas la premiere ligne d abord
   //Quoi que.. on pourrait essayer d inserer le premier point qui rentre (rapport reservoir), si on en pas au moins c'est regle
   //peut prmettre aussi d eliminer des points mais bonne chance
+  i=1;
+  while(p->demande[i]>p->capacite && i<=nblieux)
+    ++i;
+  if(i>nblieux){
+    printf("Le reservoir est trop petit pour prendre un trou");
+    return;
+  }
+  cour = (trajet*) malloc (sizeof (trajet));
+  cour->nbplace = 1;
+  cour->chemin = (int *) malloc (1 * sizeof (int));
+  cour->chemin[0] = i;
+  Mprec->traj = cour;
+  prec = cour;
   taille = 1;//On commence avec les trajet de 1
   while(taille<=nblieux){//Normalement le dernier trajet que l on va trouver est celui passant par tout les points
     //A changer si on trouve comment optimiser avec des appartenance
     //ie: si un chemin avec les point xyz ne rentre pas, on ignore les chemins qui ont xyz
     //semi opti=> si le prefix depasse on saute a la suite <= plus simple (on augmente le dernier du prefixe ou la taille si dernier = nblieux)
-    if(prec==NULL){
-      breakPt = -1;
-    }else if(prec->chemin[ taille-1 ] < nblieux ){//Si la derniere du regroupement precedent n est pas la valeur max
+    /* if(prec==NULL){ */
+    /*   breakPt = -1; */
+    /* }else  */if(prec->chemin[ taille-1 ] < nblieux ){//Si la derniere du regroupement precedent n est pas la valeur max
       breakPt = taille-1;//A voir si le bP est devant ou dessus le changement     
     }else{
       //Recherche du bP
@@ -269,7 +282,7 @@ void enumererRegroupe(donnees *p, maillTrajet* debut){
     //Pour le premier tour, prec est nul, il faut remplir avec 1
     //Ou pas avec le changement plus haut pour plus tard, terminons deja cela
     //Le || prec==NULL est la que pour le premier tour, faire changement au dessus
-    acc = (breakPt<0 /* && taille>1 */ || prec==NULL) ?  1 : prec->chemin[breakPt]+1;
+    acc = (breakPt<0 /* && taille>1 */ /* || prec==NULL */) ?  1 : prec->chemin[breakPt]+1;
     i=(remplissage <= p->capacite)? breakPt : i;
     if(i<0)
       i=0;
@@ -319,7 +332,7 @@ void enumererRegroupe(donnees *p, maillTrajet* debut){
 void lectureReg(maillTrajet* deb){
   //On ne remplit pas le premier maillon, pas super
   //Ne va pas afficher la premiere permut, il faut faire le truc pour le premier regroup
-  maillTrajet*  cour = deb->suiv;
+  maillTrajet*  cour = deb/* ->suiv */;
   int i;
   while(cour!=NULL){
     if(cour->traj != NULL){//Sortez protege
