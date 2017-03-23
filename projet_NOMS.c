@@ -51,8 +51,29 @@ typedef struct {
   int nbplace;//Le nombre de point non base visite
   int longueur;//La longueur minimale pour faire la boucle
 } trajet;
+//Le maillon
+typedef struct maillon{
+  trajet* traj;//Oblige? pour l insertion des nouveau
+  struct maillon* suiv;
+} maillTrajet;
+typedef struct {
+  maillTrajet* prem;
+} teteTrajet;
 //-------------Nb trajet totale possible Somme de i=1 a nblieux ( n!/(i!(n-i)!))-----------
 
+void freeTrajet(trajet* t){
+  int i;
+  free(t->chemin);
+}
+void freeMaill(maillTrajet* m){
+  maillTrajet* cour;
+  cour = m->suiv;
+  while(cour!=NULL){
+    freeTrajet(cour->traj);
+    //Faut il free le suiv, si oui comment
+    cour = m->suiv;
+  }
+}
 //Calcul d un factoriel, necessaire au nombre de regroupement max
 int facto(int n){
   if (n==0)
@@ -62,25 +83,30 @@ int facto(int n){
 }
 
 /* enumeration des regroupements */
-int** enumererRegroupe(donnees *p){
+void enumererRegroupe(donnees *p, maillTrajet* debut){
   int i,j;
   //On compte le nombre de trajet max
-  int totT=0;
+  //int totT=0;
   //p->nblieux semble compter le camp de base, or il n est pas dans les regroupement, a voir si ne pas le -1
   int nblieux = p->nblieux -1;
-  int factoNblieux= facto(nblieux);//Pour reduire le nombre de calcul
-  for(i=1;i<nblieux;++i)
-    totT+= factoNblieux/( facto(i) * facto(nblieux-i));
+  /* 
+         Ce total est bien joli, mais 15! fait 1.3*10^12 donc l entier est rapidement plein
+	 Donc le malloc ne veut pas et ca fait de la merde
+	 Donc essayons avec une liste chaine, surtout que sur les X millions de regroupements totaux existant seulement quelques uns etaient utilises
+  */
+  /* int factoNblieux= facto(nblieux);//Pour reduire le nombre de calcul */
+  /* for(i=1;i<nblieux;++i) */
+  /*   totT+= factoNblieux/( facto(i) * facto(nblieux-i)); */
   
-  ++ totT;// Le regroupement de nblieux
+  /* ++ totT;// Le regroupement de nblieux */
   //++totT;//Une case supplementaire au cas où on a tous les regroupement pour le 0
   //Il semblerait que le tableau aille jusque [totT] en partant de 0 donc totT+1 case
-  int ** lesRegroup;
-  lesRegroup=(int **) malloc (totT * sizeof(int *));
-  for(i=0;i < totT;++i) lesRegroup[i] = (int *) malloc ( (nblieux+1) * sizeof(int));
+  /* int ** lesRegroup; */
+  /* lesRegroup=(int **) malloc (totT * sizeof(int *)); */
+  /* for(i=0;i < totT;++i) lesRegroup[i] = (int *) malloc ( (nblieux+1) * sizeof(int)); */
   //On a le tableau de dimension 2 pouvant tout contenir
   int taille, actuel, depart, ligne;
-  int bLigne, bDepart;//On les considere comme des booleens
+  //int bLigne, bDepart;//On les considere comme des booleens
   // taille = 1;
   //ligne = 0;
   //Pour  l instant on fait sans enlever les trop plein
@@ -124,10 +150,10 @@ int** enumererRegroupe(donnees *p){
   /* lesRegroup[ligne][0]= 0;//Sert de stop pour ne pas lire trop loin */
   //---------------------------Essaie numero 2------------------------------------
   //On insert la premiere ligne
-  taille = 1;
-  ligne = 0;
-  lesRegroup[ligne][0]=taille;
-  lesRegroup[ligne][1]=1;
+  /* taille = 1; */
+  /* ligne = 0; */
+  /* lesRegroup[ligne][0]=taille; */
+  /* lesRegroup[ligne][1]=1; */
   /*On va travailler en correction
     Donc on verifie la ligne du dessus pour savoir si on se met apres ou si on l ecrase(ligne++ ou non)
     On utilise la ligne du dessus pour savoir ce que contient la ligne actuel:
@@ -138,73 +164,165 @@ int** enumererRegroupe(donnees *p){
     Normalement la taille ne depassera pas la taille car le compte semble être bon, sinon sauter le for principal en while taille<nblieux
     
    */
-  int lignePrec = 0;
-  int breakPoint,valBreak;//regarde a quel endroit on casse la chaine prec pour faire l actuel
-  while(taille<nblieux){
-    //On verifie que la ligne precedement ecrite ne depasse pas
-    actuel = 0;
-    for(j=0;j<lesRegroup[ligne][0];++j){
-      actuel += p->demande[ lesRegroup[ligne][j+1]];
-    }
-    lignePrec=ligne;
-    if(actuel<=p->capacite){
-      ++ligne;
-    }
-    if(lesRegroup[ lignePrec ][taille] != nblieux){//Si le dernier n'est pas nblieux
-      //On suppose que l'on ne sera pas au dessus car ca ne doit pas arriver
-      //((ligne==0) ? 0 : (ligne-1)): Cette merde sert a utiliser ligne-1 sans tomber dans le negatif
-      //Utilise un prec IDIOT
-      lesRegroup[ ligne ][0]=taille;
-      for(j=1;j<lesRegroup[lignePrec][0];++j){
-	lesRegroup[ligne][j]=lesRegroup[lignePrec][j];
-      }
-      lesRegroup[ligne][taille]=lesRegroup[lignePrec][taille]+1;
+  /* int lignePrec = 0; */
+  /* int breakPoint,valBreak;//regarde a quel endroit on casse la chaine prec pour faire l actuel */
+  /* while(taille<nblieux){ */
+  /*   //On verifie que la ligne precedement ecrite ne depasse pas */
+  /*   actuel = 0; */
+  /*   for(j=0;j<lesRegroup[ligne][0];++j){ */
+  /*     actuel += p->demande[ lesRegroup[ligne][j+1]]; */
+  /*   } */
+  /*   lignePrec=ligne; */
+  /*   if(actuel<=p->capacite){ */
+  /*     ++ligne; */
+  /*   } */
+  /*   if(lesRegroup[ lignePrec ][taille] != nblieux){//Si le dernier n'est pas nblieux */
+  /*     //On suppose que l'on ne sera pas au dessus car ca ne doit pas arriver */
+  /*     //((ligne==0) ? 0 : (ligne-1)): Cette merde sert a utiliser ligne-1 sans tomber dans le negatif */
+  /*     //Utilise un prec IDIOT */
+  /*     lesRegroup[ ligne ][0]=taille; */
+  /*     for(j=1;j<lesRegroup[lignePrec][0];++j){ */
+  /* 	lesRegroup[ligne][j]=lesRegroup[lignePrec][j]; */
+  /*     } */
+  /*     lesRegroup[ligne][taille]=lesRegroup[lignePrec][taille]+1; */
       
+  /*   }else{ */
+  /*     //On sait que la derniere case est le nombre max */
+  /*     breakPoint=taille-1; */
+  /*     while(breakPoint>0 && lesRegroup[lignePrec][breakPoint]+1+taille-breakPoint>nblieux){ */
+  /* 	--breakPoint; */
+  /*     } */
+  /*     if(breakPoint>0){ */
+  /* 	lesRegroup[ligne][0]=taille; */
+  /* 	for(j=1;j<breakPoint;++j){ */
+  /* 	  lesRegroup[ligne][j]=lesRegroup[lignePrec][j]; */
+  /* 	} */
+  /* 	valBreak = lesRegroup[lignePrec][breakPoint]+1; */
+  /* 	lesRegroup[ligne][breakPoint]= valBreak; */
+  /* 	for(j=1;j<=taille-breakPoint;++j){ */
+  /* 	  lesRegroup[ligne][breakPoint+j]=valBreak+j; */
+  /* 	} */
+  /*     }else{ */
+  /* 	++taille; */
+  /* 	lesRegroup[ligne][0]=taille; */
+  /* 	for(j=1;j<=taille;++j){ */
+  /* 	  lesRegroup[ligne][j]=j; */
+  /* 	} */
+  /*     } */
+  /*   } */
+  /* } */
+  /* //Il faut voir si on garde la derniere entree */
+  /* actuel = 0; */
+  /* for(j=0;j<lesRegroup[ligne][0];++j){ */
+  /*   actuel += p->demande[ lesRegroup[ligne][j+1]]; */
+  /* } */
+  /* if(actuel<=p->capacite){ */
+  /*   ++ligne; */
+  /* } */
+  /* lesRegroup[ligne][0]=0; */
+  /* return lesRegroup; */
+  int remplissage;//Combien le drones aurait il d eau apres le passage sur le point courant
+  trajet* prec;
+  trajet* cour;
+  maillTrajet* res;//Suit l endroit d insertion du trajet
+  int acc;
+  int breakPt;
+  maillTrajet* Mprec= debut;//On place le pointeur au debut, donc si il y avait qqch cela est perdu
+  //on introduit pas la premiere ligne d abord
+  //Quoi que.. on pourrait essayer d inserer le premier point qui rentre (rapport reservoir), si on en pas au moins c'est regle
+  //peut prmettre aussi d eliminer des points mais bonne chance
+  taille = 1;//On commence avec les trajet de 1
+  while(taille<=nblieux){//Normalement le dernier trajet que l on va trouver est celui passant par tout les points
+    //A changer si on trouve comment optimiser avec des appartenance
+    //ie: si un chemin avec les point xyz ne rentre pas, on ignore les chemins qui ont xyz
+    //semi opti=> si le prefix depasse on saute a la suite <= plus simple (on augmente le dernier du prefixe ou la taille si dernier = nblieux)
+    if(prec==NULL){
+      breakPt = 0;
+    }else if(prec->chemin[ taille-1 ] < nblieux ){//Si la derniere du regroupement precedent n est pas la valeur max
+      breakPt = taille-1;//A voir si le bP est devant ou dessus le changement     
     }else{
-      //On sait que la derniere case est le nombre max
-      breakPoint=taille-1;
-      while(breakPoint>0 && lesRegroup[lignePrec][breakPoint]+1+taille-breakPoint>nblieux){
-	--breakPoint;
+      //Recherche du bP
+      breakPt=taille-1; 
+      while(breakPt>0 && prec->chemin[breakPt]+1+taille-breakPt>nblieux){
+	//Je vote dessus
+  	--breakPt;
       }
-      if(breakPoint>0){
-	lesRegroup[ligne][0]=taille;
-	for(j=1;j<breakPoint;++j){
-	  lesRegroup[ligne][j]=lesRegroup[lignePrec][j];
-	}
-	valBreak = lesRegroup[lignePrec][breakPoint]+1;
-	lesRegroup[ligne][breakPoint]= valBreak;
-	for(j=1;j<=taille-breakPoint;++j){
-	  lesRegroup[ligne][breakPoint+j]=valBreak+j;
-	}
-      }else{
+      //Besoin de ça ici pour faire passer la premiere ligne sans tout faire sauter
+      if(breakPt==0)
 	++taille;
-	lesRegroup[ligne][0]=taille;
-	for(j=1;j<=taille;++j){
-	  lesRegroup[ligne][j]=j;
-	}
+    }
+    //Donc on a le bP
+    //On cree le nouveau trajet
+    cour = (trajet*) malloc (sizeof (trajet));
+    cour->chemin = (int *) malloc (taille * sizeof (int));
+    //on copie la partie d avant le bP
+    remplissage = 0;
+    i = 0;
+    //Le calcul de remplissage est chiant ici car on sait deja que ca rentre a voir
+    while(i<breakPt && remplissage<= p->capacite){
+      //Si prec est NULL alors bP=0, on ne rentre pas dans le for
+      cour->chemin[i] = prec->chemin[i];
+      remplissage += p->demande[ prec->chemin[i] ];
+      ++i;
+    }
+    //On met la fin
+    //Pour le premier tour, prec est nul, il faut remplir avec 1
+    //Ou pas avec le changement plus haut pour plus tard, terminons deja cela
+    acc = (breakPt==0 && taille>1 || prec==NULL) ?  1 : prec->chemin[breakPt]+1;
+    i=(remplissage <= p->capacite)? breakPt : i;
+    while(i<taille && remplissage<= p->capacite){
+      cour->chemin[i] = acc;
+      remplissage += p->demande[ acc ];
+      ++i;
+      ++acc;
+    }
+    //Est ce que mettre remplissage> p->capacite dans un "booleen" aiderait?
+    if(remplissage > p->capacite){
+      //Cela veut dire que tout est bien rempli jusqu a i-1
+      //ie: le prefixe chemin[0..i-1] depasse le reservoir mais pas chemin[0..i-2]
+      //On veut donc que lors du prochain tour le bP tombe sur i-1 ou plus bas (suivant la config)
+      //On rempli donc toutes les cases suivantes avec nblieux pour l obliger a traverser jusque i-1
+      //BTW=> i-1 car il y a un ++i apres le remplissage, sinon a mettre dans le if, a voir
+      for(acc = i;acc<taille;++acc){
+	cour->chemin[acc] = nblieux;
       }
+    }else{
+      //Le chemin est acceptable, on le rajoute au resultat
+      res = (maillTrajet*) malloc (sizeof (maillTrajet));
+      res->traj = cour;
+      cour->nbplace = taille;
+      cour->longueur = 0;
+      res->suiv = (maillTrajet*) malloc (sizeof (maillTrajet));
+      Mprec->suiv = res;
+      Mprec = res;
+      //Le premier trajet est peut etre vide
     }
+    prec = cour;
   }
-  //Il faut voir si on garde la derniere entree
-  actuel = 0;
-  for(j=0;j<lesRegroup[ligne][0];++j){
-    actuel += p->demande[ lesRegroup[ligne][j+1]];
-  }
-  if(actuel<=p->capacite){
-    ++ligne;
-  }
-  lesRegroup[ligne][0]=0;
-  return lesRegroup;
 }
-void lectureReg(int** reg){
-  int i,ligne;
-  ligne = 0;
-  while(reg[ligne][0]!=0){
-    for(i=1;i<=reg[ligne][0];++i){
-      printf("%d, ",reg[ligne][i]); 
+//Besoin d un completement nouveau vu que l on ne range plus de la meme maniere
+/* void lectureReg(int** reg){ */
+/*   int i,ligne; */
+/*   ligne = 0; */
+/*   while(reg[ligne][0]!=0){ */
+/*     for(i=1;i<=reg[ligne][0];++i){ */
+/*       printf("%d, ",reg[ligne][i]);  */
+/*     } */
+/*     ++ligne; */
+/*     puts(""); */
+/*   } */
+/* } */
+void lectureReg(maillTrajet* deb){
+  maillTrajet*  cour = deb->suiv;
+  int i;
+  while(cour->suiv!=NULL){
+    if(cour->traj != NULL){//Sortez protege
+      for(i=0;i<cour->traj->nbplace;++i){
+	printf("%d, ",cour->traj->chemin[i]);
+      }
+      puts("");
     }
-    ++ligne;
-    puts("");
+    cour = cour->suiv;
   }
 }
 int** allPermut(int* chem){
@@ -337,8 +455,7 @@ int longueur(int *chemin, int taille, donnees *p){
 int bestLength(int ** permut, int taille, donnees *p){
   int ligne = 0;
   /* Cool mais necessite une library supp
-     int min = std::numeric_limits<int>::max();
-  */
+     int min = std::numeric_limits<int>::max();*/
   int min = longueur(permut[ligne],taille,p);
   int tmp;
   ++ligne;
@@ -423,24 +540,28 @@ int main(int argc, char *argv[])
 	crono_start(); // .. et donc du chronomètre
 
 	/* .... */
-	int** regroup;
-	int** permut;
-	regroup = enumererRegroupe(&p);
+	//Les test pour avec les int **
+	/* int** regroup; */
+	/* int** permut; */
+	/* regroup = enumererRegroupe(&p); */
 
-	lectureReg(regroup);
-	printf("-----------------------------");
-	puts("");
-	int ligne = 0;
-	while(regroup[ligne][0]>0){
-	  permut=allPermut(regroup[ligne]);
-	  lecturePer(permut,regroup[ligne][0]);
-	  printf("Chemin le plus court: %d",bestLength(permut,regroup[ligne][0],&p));
-	  puts("");
-	  ++ligne;
-	}
-	//lecturePer(allPermut(regroup[15]),3);
+	/* lectureReg(regroup); */
+	/* printf("-----------------------------"); */
+	/* puts(""); */
+	/* int ligne = 0; */
+	/* while(regroup[ligne][0]>0){ */
+	/*   permut=allPermut(regroup[ligne]); */
+	/*   lecturePer(permut,regroup[ligne][0]); */
+	/*   printf("Chemin le plus court: %d",bestLength(permut,regroup[ligne][0],&p)); */
+	/*   puts(""); */
+	/*   ++ligne; */
+	/* } */
+	/* //lecturePer(allPermut(regroup[15]),3); */
 
-
+	//Avec les chaines
+	maillTrajet deb;
+	enumererRegroupe(&p,&deb);
+	lectureReg(&deb);
 
 
 
