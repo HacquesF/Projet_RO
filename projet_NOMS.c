@@ -237,18 +237,18 @@ void enumererRegroupe(donnees *p, maillTrajet* debut){
     //ie: si un chemin avec les point xyz ne rentre pas, on ignore les chemins qui ont xyz
     //semi opti=> si le prefix depasse on saute a la suite <= plus simple (on augmente le dernier du prefixe ou la taille si dernier = nblieux)
     if(prec==NULL){
-      breakPt = 0;
+      breakPt = -1;
     }else if(prec->chemin[ taille-1 ] < nblieux ){//Si la derniere du regroupement precedent n est pas la valeur max
       breakPt = taille-1;//A voir si le bP est devant ou dessus le changement     
     }else{
       //Recherche du bP
       breakPt=taille-1; 
-      while(breakPt>0 && prec->chemin[breakPt]+1+taille-breakPt>nblieux){
+      while(breakPt>=0 && prec->chemin[breakPt]+1+taille-breakPt-1>nblieux){
 	//Je vote dessus
   	--breakPt;
       }
       //Besoin de ça ici pour faire passer la premiere ligne sans tout faire sauter
-      if(breakPt==0)
+      if(breakPt<0)
 	++taille;
     }
     //Donc on a le bP
@@ -268,8 +268,11 @@ void enumererRegroupe(donnees *p, maillTrajet* debut){
     //On met la fin
     //Pour le premier tour, prec est nul, il faut remplir avec 1
     //Ou pas avec le changement plus haut pour plus tard, terminons deja cela
-    acc = (breakPt==0 && taille>1 || prec==NULL) ?  1 : prec->chemin[breakPt]+1;
+    //Le || prec==NULL est la que pour le premier tour, faire changement au dessus
+    acc = (breakPt<0 /* && taille>1 */ || prec==NULL) ?  1 : prec->chemin[breakPt]+1;
     i=(remplissage <= p->capacite)? breakPt : i;
+    if(i<0)
+      i=0;
     while(i<taille && remplissage<= p->capacite){
       cour->chemin[i] = acc;
       remplissage += p->demande[ acc ];
@@ -292,7 +295,7 @@ void enumererRegroupe(donnees *p, maillTrajet* debut){
       res->traj = cour;
       cour->nbplace = taille;
       cour->longueur = 0;
-      res->suiv = (maillTrajet*) malloc (sizeof (maillTrajet));
+      //res->suiv = (maillTrajet*) malloc (sizeof (maillTrajet));
       Mprec->suiv = res;
       Mprec = res;
       //Le premier trajet est peut etre vide
@@ -312,7 +315,9 @@ void enumererRegroupe(donnees *p, maillTrajet* debut){
 /*     puts(""); */
 /*   } */
 /* } */
+//On peut meme lire les permutation avec, cool
 void lectureReg(maillTrajet* deb){
+  //On ne remplit pas le premier maillon, pas super
   maillTrajet*  cour = deb->suiv;
   int i;
   while(cour->suiv!=NULL){
@@ -325,34 +330,45 @@ void lectureReg(maillTrajet* deb){
     cour = cour->suiv;
   }
 }
-int** allPermut(int* chem){
+//On fait les modifs pour la chaine en direct, donc ca va planter
+//int** allPermut(int* chem){
+//On met dans les permut de t en chaine dans debut pour 
+void allPermut(trajet *t, maillTrajet *debut){
   //Fait en suivant l algo de Even
   //Heap est peut etre mieux
-  int** permut;
-  int taille = chem[0];
-  int tot = facto(taille)+1;
+  /* int** permut; */
+  int taille = t->nbplace;
+  /* int tot = facto(taille)+1; */
   //On met un stop a la fin
-  permut=(int **) malloc (tot * sizeof(int *));
+  /* permut=(int **) malloc (tot * sizeof(int *)); */
   int i;
-  for(i=0;i < tot;++i) permut[i] = (int *) malloc ( taille * sizeof(int));
+  /* for(i=0;i < tot;++i) permut[i] = (int *) malloc ( taille * sizeof(int)); */
   int* sgn = (int *) malloc (taille * sizeof(int));
   //Le tableau contenant les signes de deplacement
   int* tmpChem = (int *) malloc (taille * sizeof(int));
   //Le tableau contenant la permutation en cours
   sgn[0]=0;
-  tmpChem[0]=chem[1];
+  /* tmpChem[0]=t->chemin[0]; */
   //On fait le premier a cote pour utiliser le meme for que sgn
   int nbNZero = 0;
-  int ligne = 0;
-  permut[ligne][0]= tmpChem[0];
+  /* int ligne = 0; */
+  trajet * cour;
+  debut = (maillTrajet *) malloc (sizeof (maillTrajet));
+  maillTrajet* Mprec = debut;
+  cour = (trajet *) malloc (sizeof (trajet));
+  cour->chemin = (int *) malloc (taille * sizeof (int));
+  /* permut[ligne][0]= tmpChem[0]; */
   //De meme, on mets aa premiere la ligne
   for(i=1;i<taille;i++){
     sgn[i]=-1;
     ++nbNZero;
-    tmpChem[i]=chem[i+1];
-    permut[ligne][i]= tmpChem[i];
+    tmpChem[i]=t->chemin[i];
+    cour->chemin[i]= tmpChem[i];
   }
-  ++ligne;
+  cour->nbplace = taille;
+  Mprec->traj = cour;
+  maillTrajet* res;
+  /* ++ligne; */
   int posMax = taille-1;//Notre tableau est dans l ordre croissant par construction
   //Sinon on peut ajouter la recherche du max dans le for du sgn
   int tmp;
@@ -385,6 +401,9 @@ int** allPermut(int* chem){
     }
     //On change le signe de la premiere partie du tableau
     //ie: si plus grand et au debut alors +1
+    cour = (trajet *) malloc (sizeof (trajet));
+    cour->nbplace = taille;
+    cour->chemin = (int *) malloc (taille * sizeof (int) );
     for(i=0;i<posMax;++i){
       tmp = tmpChem[i];
       if(tmp>tmpChem[posMax]){
@@ -394,9 +413,9 @@ int** allPermut(int* chem){
 	nbNZero= sgn[i]==0 ? ++nbNZero : nbNZero;
 	sgn[i]= 1;
       }
-      permut[ligne][i]=tmp;
+      cour->chemin[i]=tmp;
     }
-    permut[ligne][posMax]= tmpChem[posMax];
+    cour->chemin[posMax]= tmpChem[posMax];
     //On change le signe de la seconde partie du tableau
     //ie: si plus grand et au debut alors -1
 
@@ -406,7 +425,7 @@ int** allPermut(int* chem){
 	nbNZero= sgn[i]==0 ? ++nbNZero : nbNZero;
 	sgn[i]= -1;
       }
-      permut[ligne][i]=tmp;
+      cour->chemin[i]=tmp;
     }
     valMax = 0;
     newPMax = -1;
@@ -423,11 +442,17 @@ int** allPermut(int* chem){
       posMax = newPMax;
     }
     //On affecte la nouvelle valeur
-    ++ligne;
+    /* ++ligne; */
+    res = (maillTrajet*) malloc (sizeof (maillTrajet));
+    res->traj = cour;
+    res->suiv = (maillTrajet*) malloc (sizeof (maillTrajet));
+    Mprec->suiv = res;
+    Mprec = res;
+    
   }
-  permut[ligne][0]= -1;
+  /* permut[ligne][0]= -1; */
   //Le stop est pose
-  return permut;
+  /* return permut; */
 }
 void lecturePer(int** permut, int taille){
   int i;
@@ -562,8 +587,10 @@ int main(int argc, char *argv[])
 	maillTrajet deb;
 	enumererRegroupe(&p,&deb);
 	lectureReg(&deb);
-
-
+	maillTrajet permut9;
+	//CeBo
+	allPermut(deb.suiv->suiv->suiv->suiv->suiv->suiv->suiv->suiv->suiv->suiv->traj,&permut9);
+	//lectureReg(&permut9);
 
 
 
