@@ -67,11 +67,14 @@ void freeTrajet(trajet* t){
 }
 void freeMaill(maillTrajet* m){
   maillTrajet* cour;
+  maillTrajet* prec;
   cour = m->suiv;
   while(cour!=NULL){
     freeTrajet(cour->traj);
     //Faut il free le suiv, si oui comment
-    cour = m->suiv;
+    prec = cour;
+    cour = cour->suiv;
+    free(prec);
   }
 }
 //Calcul d un factoriel, necessaire au nombre de regroupement max
@@ -607,25 +610,30 @@ int main(int argc, char *argv[])
 	//Avec les chaines
 	maillTrajet deb;
 	int i;
+	int tmp;
 	enumererRegroupe(&p,&deb);
 	//lectureReg(&deb);
 	maillTrajet permut;
 	maillTrajet* cour;
 	cour = &deb;
-	printf("------------------------------------");
-	puts("");
+	/* printf("------------------------------------"); */
+	/* puts(""); */
 	while(cour != NULL){
 	  if(cour->traj != NULL){
 	    allPermut(cour->traj,&permut);
-	    //lecture du chemin
-	    for(i=0;i<cour->traj->nbplace;++i){
-	      printf("%d, ",cour->traj->chemin[i]);
-	    }
-	    puts("");
-	    printf("Chemin le plus court: %d", bestLength(&permut,&p));
-	    puts("");
+	    /* //lecture du chemin */
+	    /* for(i=0;i<cour->traj->nbplace;++i){ */
+	    /*   printf("%d, ",cour->traj->chemin[i]); */
+	    /* } */
+	    /* puts(""); */
+	    tmp =  bestLength(&permut,&p);
+	    /* printf("Chemin le plus court: %d",tmp); */
+	    cour->traj->longueur = tmp;;
+	    /* puts(""); */
+	    freeMaill(&permut);
+	  }else{
+	    printf("????");
 	  }
-	  //freeMaill(&permut);
 	  cour = cour->suiv;
 	}
 	/* trajet t; */
@@ -637,7 +645,7 @@ int main(int argc, char *argv[])
 	/* //CeBo */
 	/* allPermut(&t,&permut9); */
 	/* lectureReg(&permut9); */
-
+	//On a dans deb tous les regroupements et leurs longueur min
 
 
 	/* ... */
