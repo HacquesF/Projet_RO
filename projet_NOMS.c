@@ -493,19 +493,24 @@ int longueur(int *chemin, int taille, donnees *p){
   res+=p->C[dep][0];
   return res;
 }
-int bestLength(int ** permut, int taille, donnees *p){
-  int ligne = 0;
+/* int bestLength(int ** permut, int taille, donnees *p){ */
+/*   int ligne = 0; */
+int bestLength(maillTrajet* t, donnees *p){
   /* Cool mais necessite une library supp
      int min = std::numeric_limits<int>::max();*/
-  int min = longueur(permut[ligne],taille,p);
+  maillTrajet* cour = t;
+  //Toute les permutations ont la même taille
+  int taille = cour->traj->nbplace;
+  int min = longueur(cour->traj->chemin,taille,p);
   int tmp;
-  ++ligne;
-  while(permut[ligne][0]!=-1){
-    tmp = longueur(permut[ligne],taille,p);
+  cour = cour->suiv;
+  while(cour != NULL){
+    tmp = longueur(cour->traj->chemin,taille,p);
     if(tmp<min){
       min = tmp;
     }
-    ++ligne;
+    cour = cour->suiv;
+    //++ligne;
   }
   return min;
 }
@@ -601,18 +606,37 @@ int main(int argc, char *argv[])
 
 	//Avec les chaines
 	maillTrajet deb;
-	enumererRegroupe(&p,&deb);
-	lectureReg(&deb);
-	maillTrajet permut9;
-	trajet t;
-	t.chemin = (int *) malloc (3 * sizeof (int));
 	int i;
-	for(i=0;i<3;++i)
-	  t.chemin[i]=i+1;
-	t.nbplace = 3;
-	//CeBo
-	allPermut(&t,&permut9);
-	lectureReg(&permut9);
+	enumererRegroupe(&p,&deb);
+	//lectureReg(&deb);
+	maillTrajet permut;
+	maillTrajet* cour;
+	cour = &deb;
+	printf("------------------------------------");
+	puts("");
+	while(cour != NULL){
+	  if(cour->traj != NULL){
+	    allPermut(cour->traj,&permut);
+	    //lecture du chemin
+	    for(i=0;i<cour->traj->nbplace;++i){
+	      printf("%d, ",cour->traj->chemin[i]);
+	    }
+	    puts("");
+	    printf("Chemin le plus court: %d", bestLength(&permut,&p));
+	    puts("");
+	  }
+	  //freeMaill(&permut);
+	  cour = cour->suiv;
+	}
+	/* trajet t; */
+	/* t.chemin = (int *) malloc (3 * sizeof (int)); */
+	/* int i; */
+	/* for(i=0;i<3;++i) */
+	/*   t.chemin[i]=i+1; */
+	/* t.nbplace = 3; */
+	/* //CeBo */
+	/* allPermut(&t,&permut9); */
+	/* lectureReg(&permut9); */
 
 
 
