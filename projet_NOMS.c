@@ -71,6 +71,7 @@ void freeMaill(maillTrajet* m){
   cour = m->suiv;
   while(cour!=NULL){
     freeTrajet(cour->traj);
+    cour->traj = NULL;
     //Faut il free le suiv, si oui comment
     prec = cour;
     cour = cour->suiv;
@@ -86,8 +87,8 @@ int facto(int n){
 }
 
 /* enumeration des regroupements */
-void enumererRegroupe(donnees *p, maillTrajet* debut){
-  int i,j;
+int enumererRegroupe(donnees *p, maillTrajet* debut){
+  int i,j,cmp;
   //On compte le nombre de trajet max
   //int totT=0;
   //p->nblieux semble compter le camp de base, or il n est pas dans les regroupement, a voir si ne pas le -1
@@ -241,6 +242,7 @@ void enumererRegroupe(donnees *p, maillTrajet* debut){
     printf("Le reservoir est trop petit pour prendre un trou");
     return;
   }
+  cmp = 1;
   cour = (trajet*) malloc (sizeof (trajet));
   cour->nbplace = 1;
   cour->chemin = (int *) malloc (1 * sizeof (int));
@@ -307,6 +309,7 @@ void enumererRegroupe(donnees *p, maillTrajet* debut){
       }
     }else{
       //Le chemin est acceptable, on le rajoute au resultat
+      ++cmp;
       res = (maillTrajet*) malloc (sizeof (maillTrajet));
       res->traj = cour;
       cour->nbplace = taille;
@@ -318,6 +321,7 @@ void enumererRegroupe(donnees *p, maillTrajet* debut){
     }
     prec = cour;
   }
+  return cmp;
 }
 //Besoin d un completement nouveau vu que l on ne range plus de la meme maniere
 /* void lectureReg(int** reg){ */
@@ -386,6 +390,7 @@ void allPermut(trajet *t, maillTrajet *debut){
   }
   cour->nbplace = taille;
   Mprec->traj = cour;
+  Mprec->suiv = NULL;
   maillTrajet* res;
   /* ++ligne; */
   int posMax = taille-1;//Notre tableau est dans l ordre croissant par construction
@@ -467,6 +472,7 @@ void allPermut(trajet *t, maillTrajet *debut){
     //res->suiv = (maillTrajet*) malloc (sizeof (maillTrajet));
     Mprec->suiv = res;
     Mprec = res;
+    Mprec->suiv = NULL;
     
   }
   /* permut[ligne][0]= -1; */
@@ -611,7 +617,10 @@ int main(int argc, char *argv[])
 	maillTrajet deb;
 	int i;
 	int tmp;
-	enumererRegroupe(&p,&deb);
+	//printf("%d",enumererRegroupe(&p,&deb));
+	int nbReg = enumererRegroupe(&p,&deb);
+	int nbCreux = 0;
+	/* puts(""); */
 	//lectureReg(&deb);
 	maillTrajet permut;
 	maillTrajet* cour;
@@ -629,28 +638,102 @@ int main(int argc, char *argv[])
 	    tmp =  bestLength(&permut,&p);
 	    /* printf("Chemin le plus court: %d",tmp); */
 	    cour->traj->longueur = tmp;;
+	    nbCreux+= cour->traj->nbplace;
 	    /* puts(""); */
-	    freeMaill(&permut);
+	    //freeMaill(&permut);
 	  }else{
 	    printf("????");
 	  }
 	  cour = cour->suiv;
 	}
 	/* trajet t; */
-	/* t.chemin = (int *) malloc (3 * sizeof (int)); */
-	/* int i; */
-	/* for(i=0;i<3;++i) */
+	/* maillTrajet permut9; */
+	/* int taille9 = 5; */
+	/* t.chemin = (int *) malloc (taille9 * sizeof (int)); */
+	/* //int i; */
+	/* for(i=0;i<taille9;++i) */
 	/*   t.chemin[i]=i+1; */
-	/* t.nbplace = 3; */
+	/* t.nbplace = taille9; */
 	/* //CeBo */
 	/* allPermut(&t,&permut9); */
 	/* lectureReg(&permut9); */
 	//On a dans deb tous les regroupements et leurs longueur min
+	/* printf("------------------G------L------P------K------------------"); */
+	glp_prob *prob;
+	
+	int *ja;
+	int *ia;
+	double *ar;
 
+	char **nomContr;
+	char **numero;
+	char **nomvar;
 
-	/* ... */
+	double z;
+	double *x;
 
+	prob = glp_create_prob();
 
+	glp_set_prob_name(prob,"En Drone pour tous, tous pour l eau");
+	glp_set_obj_dir(prob, GLP_MIN);
+	
+	//-1 car le 0 n a pas de contrainte
+	//Le -1 a se promener me fait 
+	int nblieux = p.nblieux -1;
+	glp_add_rows(prob,nblieux);
+	nomContr = (char **) malloc (nblieux * sizeof(char *));
+	//Numùero utile car strcat a besoin de deux char*
+	numero = (char **) malloc (nblieux * sizeof(char *));
+	for(i=1;i<=nblieux;i++){
+	  //On ne peut pas numeroter plus loin que 99 ='( (faudrait des if+ math)
+	  nomContr[i-1] = (char *) malloc (8 * sizeof(char));
+	  numero[i-1] = (char *) malloc (3 * sizeof(char));
+	  strcpy(nomContr[i-1],"point");
+	  sprintf(numero[i-1], "%d", i);
+	  strcat(nomContr[i-1], numero[i-1]);
+	  //Les noms seront "point1", "point2",...
+	  glp_set_row_name(prob,i,nomContr[i-1]);
+	  //A la vue du nombre de i-1, autant faire i de 0 a n-1 avec i+1 dans ro_name
+	  glp_set_row_bnds(prob,i, GLP_FX, 1.0, 0.0);
+	}
+	//Autant de colonne que de var de decision que de regroupements
+	glp_add_cols(prob,nbReg);
+	nomvar = (char **) malloc (nbReg * sizeof(char *));
+	for(i = 1; i<=nbReg;++i){
+	  nomvar[i-1] = (char*) malloc (4 * sizeof(char));
+	  sprintf(nomvar[i-1],"x%d",i);
+	  glp_set_col_name(prob,i,nomvar[i-1]);
+	  glp_set_col_bnds(prob,i,GLP_DB,0.0,1.0);
+	  glp_set_col_kind(prob,i,GLP_BV);
+	}
+	  
+
+	//La matrice creuse
+	//On aura autant de creux que la somme des nbplace
+	//Le tableau aurait simplifier le truc ou pas
+	//En fait on fait le calcul en meme temps que la recherche de longueur
+	ia = (int *) malloc (nbCreux * sizeof(int));
+	ja = (int *) malloc (nbCreux * sizeof(int));
+	ar = (double *) malloc (nbCreux * sizeof(double));
+	int colonne = 1;
+	int pos = 1;
+	cour = &deb;
+	while(cour != NULL){
+	  for(i=0;i<cour->traj->nbplace;++i){
+	    ia[pos] = cour->traj->chemin[i];
+	    ja[pos] = colonne;
+	    ar[pos] = 1.0;
+	    ++pos;
+	  }
+	  glp_set_obj_coef(prob,colonne,cour->traj->longueur);
+	  cour = cour->suiv;
+	  ++colonne;
+	}
+	glp_load_matrix(prob,nbCreux,ia,ja,ar);
+	glp_write_lp(prob,NULL,"drone.lp");
+
+	glp_simplex(prob,NULL);
+	glp_intopt(prob,NULL);
 
 	/* Problème résolu, arrêt du chrono */
 	
@@ -658,11 +741,19 @@ int main(int argc, char *argv[])
 	temps = crono_ms()/1000,0;
 	
 	/* Affichage des résultats (à compléter) */
-	
+	z = glp_mip_obj_val(prob);
+	x = (double *) malloc (nbReg * sizeof(double));
+	for(i=0;i<nbReg;++i) x[i] = glp_mip_col_val(prob,i+1);
+
+	printf("z = %lf\n",z);
+	for(i=0;i<nbReg;++i) printf("x%d = %d, ", i, (int)(x[i]+0.5));
+	puts("");
+
 	printf("Temps : %f\n",temps);	
 	
 	/* libération mémoire (à compléter en fonction des allocations) */
-
+	glp_delete_prob(prob);
+	freeMaill(&deb);
 	free_data(&p);
 	
 	/* J'adore qu'un plan se déroule sans accroc! */
