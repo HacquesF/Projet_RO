@@ -712,11 +712,12 @@ int main(int argc, char *argv[])
 	//On aura autant de creux que la somme des nbplace
 	//Le tableau aurait simplifier le truc ou pas
 	//En fait on fait le calcul en meme temps que la recherche de longueur
+	--nbCreux;
 	ia = (int *) malloc (nbCreux * sizeof(int));
 	ja = (int *) malloc (nbCreux * sizeof(int));
 	ar = (double *) malloc (nbCreux * sizeof(double));
 	int colonne = 1;
-	int pos = 1;
+	int pos = 0;
 	cour = &deb;
 	while(cour != NULL){
 	  for(i=0;i<cour->traj->nbplace;++i){
