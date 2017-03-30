@@ -74,11 +74,11 @@ void freeMaill(maillTrajet* m){
   while(cour!=NULL){
     freeTrajet(cour->traj);
     //Faut il free le suiv,
-    prec = cour;
+    /* prec = cour; */
     cour = cour->suiv;
-    free(prec);
-    prec->suiv = NULL;
-    prec =NULL;
+    /* free(prec); */
+    /* prec->suiv = NULL; */
+    /* prec =NULL; */
   }
   freeTrajet(m->traj);
   //free(m);
@@ -368,7 +368,7 @@ void lectureReg(maillTrajet* deb){
 //On fait les modifs pour la chaine en direct, donc ca va planter
 //int** allPermut(int* chem){
 //On met dans les permut de t en chaine dans debut pour 
-void allPermut(trajet *t, maillTrajet *debut){
+int bestLength(trajet *t, donnees* p){
   //Fait en suivant l algo de Even
   //Heap est peut etre mieux
   /* int** permut; */
@@ -386,26 +386,35 @@ void allPermut(trajet *t, maillTrajet *debut){
   /* tmpChem[0]=t->chemin[0]; */
   //On fait le premier a cote pour utiliser le meme for que sgn
   int nbNZero = 0;
+  int min, longueur,dep;
+  dep = 0;
   /* int ligne = 0; */
-  trajet * cour;
-  maillTrajet* Mprec = debut;
-  cour = (trajet *) malloc (sizeof (trajet));
-  cour->chemin = (int *) malloc (taille * sizeof (int));
+  //trajet * cour;
+  //maillTrajet* Mprec = debut;
+  /* cour = (trajet *) malloc (sizeof (trajet)); */
+  /* cour->chemin = (int *) malloc (taille * sizeof (int)); */
   /* permut[ligne][0]= tmpChem[0]; */
   //De meme, on mets aa premiere la ligne
   sgn[0]=0;
   tmpChem[0]=t->chemin[0];
-  cour->chemin[0]= tmpChem[0];
+  longueur = p->C[dep][ tmpChem[0] ];
+  dep = tmpChem[0];
+  /* cour->chemin[0]= tmpChem[0]; */
   for(i=1;i<taille;i++){
     sgn[i]=-1;
     ++nbNZero;
     tmpChem[i]=t->chemin[i];
-    cour->chemin[i]= tmpChem[i];
+    longueur += p->C[dep][ tmpChem[i] ];
+    dep = tmpChem[i];
+    /* cour->chemin[i]= tmpChem[i]; */
   }
-  cour->nbplace = taille;
-  Mprec->traj = cour;
-  Mprec->suiv = NULL;
-  maillTrajet* res;
+  //Retour a la maison
+  longueur += p->C[dep][ 0 ];
+  min = longueur;
+  /* cour->nbplace = taille; */
+  /* Mprec->traj = cour; */
+  /* Mprec->suiv = NULL; */
+  /* maillTrajet* res; */
   /* ++ligne; */
   int posMax = taille-1;//Notre tableau est dans l ordre croissant par construction
   //Sinon on peut ajouter la recherche du max dans le for du sgn
@@ -439,9 +448,11 @@ void allPermut(trajet *t, maillTrajet *debut){
     }
     //On change le signe de la premiere partie du tableau
     //ie: si plus grand et au debut alors +1
-    cour = (trajet *) malloc (sizeof (trajet));
-    cour->nbplace = taille;
-    cour->chemin = (int *) malloc (taille * sizeof (int) );
+    /* cour = (trajet *) malloc (sizeof (trajet)); */
+    /* cour->nbplace = taille; */
+    /* cour->chemin = (int *) malloc (taille * sizeof (int) ); */
+    longueur = 0;
+    dep = 0;
     for(i=0;i<posMax;++i){
       tmp = tmpChem[i];
       if(tmp>tmpChem[posMax]){
@@ -451,9 +462,14 @@ void allPermut(trajet *t, maillTrajet *debut){
 	nbNZero= sgn[i]==0 ? ++nbNZero : nbNZero;
 	sgn[i]= 1;
       }
-      cour->chemin[i]=tmp;
+      longueur += p->C[dep][ tmp ];
+      dep = tmp;
+      /* cour->chemin[i]=tmp; */
     }
-    cour->chemin[posMax]= tmpChem[posMax];
+    /* cour->chemin[posMax]= tmpChem[posMax]; */
+    tmp = tmpChem[posMax];
+    longueur += p->C[dep][ tmp ];
+    dep = tmp;
     //On change le signe de la seconde partie du tableau
     //ie: si plus grand et au debut alors -1
 
@@ -463,7 +479,14 @@ void allPermut(trajet *t, maillTrajet *debut){
 	nbNZero= sgn[i]==0 ? ++nbNZero : nbNZero;
 	sgn[i]= -1;
       }
-      cour->chemin[i]=tmp;
+      longueur += p->C[dep][ tmp ];
+      dep = tmp;
+      /* cour->chemin[i]=tmp; */
+    }
+    //Retour a  la base
+    longueur += p->C[dep][ 0 ];
+    if(longueur < min ){
+      min = longueur;
     }
     valMax = 0;
     newPMax = -1;
@@ -481,17 +504,18 @@ void allPermut(trajet *t, maillTrajet *debut){
     }
     //On affecte la nouvelle valeur
     /* ++ligne; */
-    res = (maillTrajet*) malloc (sizeof (maillTrajet));
-    res->traj = cour;
-    //res->suiv = (maillTrajet*) malloc (sizeof (maillTrajet));
-    Mprec->suiv = res;
-    Mprec = res;
-    Mprec->suiv = NULL;
+    /* res = (maillTrajet*) malloc (sizeof (maillTrajet)); */
+    /* res->traj = cour; */
+    /* //res->suiv = (maillTrajet*) malloc (sizeof (maillTrajet)); */
+    /* Mprec->suiv = res; */
+    /* Mprec = res; */
+    /* Mprec->suiv = NULL; */
     
   }
   /* permut[ligne][0]= -1; */
   //Le stop est pose
   /* return permut; */
+  return min;
 }
 void lecturePer(int** permut, int taille){
   int i;
@@ -504,39 +528,39 @@ void lecturePer(int** permut, int taille){
     ++ligne;
   }
 }
-int longueur(int *chemin, int taille, donnees *p){
-  int res = 0;
-  int dep = 0;
-  int i;
-  for(i=0;i<taille;++i){
-    res+=p->C[dep][ chemin[i] ];
-    dep = chemin[i];
-  }
-  //Retour a la base
-  res+=p->C[dep][0];
-  return res;
-}
+/* int longueur(int *chemin, int taille, donnees *p){ */
+/*   int res = 0; */
+/*   int dep = 0; */
+/*   int i; */
+/*   for(i=0;i<taille;++i){ */
+/*     res+=p->C[dep][ chemin[i] ]; */
+/*     dep = chemin[i]; */
+/*   } */
+/*   //Retour a la base */
+/*   res+=p->C[dep][0]; */
+/*   return res; */
+/* } */
 /* int bestLength(int ** permut, int taille, donnees *p){ */
 /*   int ligne = 0; */
-int bestLength(maillTrajet* t, donnees *p){
-  /* Cool mais necessite une library supp
-     int min = std::numeric_limits<int>::max();*/
-  maillTrajet* cour = t;
-  //Toute les permutations ont la même taille
-  int taille = cour->traj->nbplace;
-  int min = longueur(cour->traj->chemin,taille,p);
-  int tmp;
-  cour = cour->suiv;
-  while(cour != NULL){
-    tmp = longueur(cour->traj->chemin,taille,p);
-    if(tmp<min){
-      min = tmp;
-    }
-    cour = cour->suiv;
-    //++ligne;
-  }
-  return min;
-}
+/* int bestLength(maillTrajet* t, donnees *p){ */
+/*   /\* Cool mais necessite une library supp */
+/*      int min = std::numeric_limits<int>::max();*\/ */
+/*   maillTrajet* cour = t; */
+/*   //Toute les permutations ont la même taille */
+/*   int taille = cour->traj->nbplace; */
+/*   int min = longueur(cour->traj->chemin,taille,p); */
+/*   int tmp; */
+/*   cour = cour->suiv; */
+/*   while(cour != NULL){ */
+/*     tmp = longueur(cour->traj->chemin,taille,p); */
+/*     if(tmp<min){ */
+/*       min = tmp; */
+/*     } */
+/*     cour = cour->suiv; */
+/*     //++ligne; */
+/*   } */
+/*   return min; */
+/* } */
 //lecture des donnees 
 void lecture_data(char *file, donnees *p)
 {
@@ -636,25 +660,27 @@ int main(int argc, char *argv[])
 	int nbCreux = 0;
 	/* puts(""); */
 	//lectureReg(&deb);
-	maillTrajet permut;
+	/* maillTrajet permut; */
+	printf("%d\n",nbReg);
 	maillTrajet* cour;
 	cour = &deb;
 	/* printf("------------------------------------"); */
 	/* puts(""); */
 	while(cour != NULL){
 	  if(cour->traj != NULL){
-	    allPermut(cour->traj,&permut);
+	    /* allPermut(cour->traj,&permut); */
 	    /* //lecture du chemin */
 	    /* for(i=0;i<cour->traj->nbplace;++i){ */
 	    /*   printf("%d, ",cour->traj->chemin[i]); */
 	    /* } */
 	    /* puts(""); */
-	    tmp =  bestLength(&permut,&p);
+	    /* tmp =  bestLength(&permut,&p); */
 	    /* printf("Chemin le plus court: %d",tmp); */
-	    cour->traj->longueur = tmp;;
+	    tmp = bestLength(cour->traj,&p);
+	    cour->traj->longueur = tmp;
 	    nbCreux+= cour->traj->nbplace;
 	    /* puts(""); */
-	    freeMaill(&permut);
+	    /* freeMaill(&permut); */
 	  }else{
 	    printf("????");
 	  }
@@ -711,10 +737,11 @@ int main(int argc, char *argv[])
 	  glp_set_row_bnds(prob,i, GLP_FX, 1.0, 0.0);
 	}
 	//Autant de colonne que de var de decision que de regroupements
+	//On peut avoir jusqu a 9 999 999 regroupement
 	glp_add_cols(prob,nbReg);
 	nomvar = (char **) malloc (nbReg * sizeof(char *));
 	for(i = 1; i<=nbReg;++i){
-	  nomvar[i-1] = (char*) malloc (4 * sizeof(char));
+	  nomvar[i-1] = (char*) malloc (10 * sizeof(char));
 	  sprintf(nomvar[i-1],"x%d",i);
 	  glp_set_col_name(prob,i,nomvar[i-1]);
 	  glp_set_col_bnds(prob,i,GLP_DB,0.0,1.0);
@@ -726,7 +753,7 @@ int main(int argc, char *argv[])
 	//On aura autant de creux que la somme des nbplace
 	//Le tableau aurait simplifier le truc ou pas
 	//En fait on fait le calcul en meme temps que la recherche de longueur
-	--nbCreux;
+	
 	ia = (int *) malloc (nbCreux * sizeof(int));
 	ja = (int *) malloc (nbCreux * sizeof(int));
 	ar = (double *) malloc (nbCreux * sizeof(double));
@@ -744,7 +771,7 @@ int main(int argc, char *argv[])
 	  cour = cour->suiv;
 	  ++colonne;
 	}
-	glp_load_matrix(prob,nbCreux,ia,ja,ar);
+	glp_load_matrix(prob,nbCreux-1,ia,ja,ar);
 	glp_write_lp(prob,NULL,"drone.lp");
 
 	glp_simplex(prob,NULL);
@@ -761,7 +788,19 @@ int main(int argc, char *argv[])
 	for(i=0;i<nbReg;++i) x[i] = glp_mip_col_val(prob,i+1);
 
 	printf("z = %lf\n",z);
-	for(i=0;i<nbReg;++i) printf("x%d = %d, ", i, (int)(x[i]+0.5));
+	cour = &deb;
+	int j;
+	for(i=0;i<nbReg;++i){
+	  //printf("x%d = %d, ", i, (int)(x[i]+0.5));
+	  if(((int)(x[i]+0.5)) == 1){
+	    for(j = 0;j<cour->traj->nbplace;++j){
+	      printf("%d ,",cour->traj->chemin[j]);
+	    }
+	    printf(": %d", cour->traj->longueur);
+	    puts("");
+	  }
+	  cour=  cour->suiv;
+	}
 	puts("");
 
 	printf("Temps : %f\n",temps);	
@@ -770,7 +809,13 @@ int main(int argc, char *argv[])
 	glp_delete_prob(prob);
 	freeMaill(&deb);
 	free_data(&p);
-	
+	free(nomContr);
+	free(numero);
+	free(nomvar);
+	free(ia);
+	free(ja);
+	free(ar);
+	free(x);
 	/* J'adore qu'un plan se déroule sans accroc! */
 	return 0;
 }
