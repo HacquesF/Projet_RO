@@ -238,6 +238,7 @@ int enumererRegroupe(donnees *p, maillTrajet* debut){
   trajet* cour;
   maillTrajet* res;//Suit l endroit d insertion du trajet
   int acc;
+  int precmp;
   int breakPt;
   maillTrajet* Mprec= debut;//On place le pointeur au debut, donc si il y avait qqch cela est perdu
   //on introduit pas la premiere ligne d abord
@@ -248,9 +249,10 @@ int enumererRegroupe(donnees *p, maillTrajet* debut){
     ++i;
   if(i>nblieux){
     printf("Le reservoir est trop petit pour prendre un trou");
-    return;
+    return 0;
   }
   cmp = 1;
+  precmp = 0;
   cour = (trajet*) malloc (sizeof (trajet));
   cour->nbplace = 1;
   cour->chemin = (int *) malloc (1 * sizeof (int));
@@ -258,7 +260,7 @@ int enumererRegroupe(donnees *p, maillTrajet* debut){
   Mprec->traj = cour;
   prec = cour;
   taille = 1;//On commence avec les trajet de 1
-  while(taille<=nblieux){//Normalement le dernier trajet que l on va trouver est celui passant par tout les points
+  while(taille<nblieux){//Normalement le dernier trajet que l on va trouver est celui passant par tout les points
     //A changer si on trouve comment optimiser avec des appartenance
     //ie: si un chemin avec les point xyz ne rentre pas, on ignore les chemins qui ont xyz
     //semi opti=> si le prefix depasse on saute a la suite <= plus simple (on augmente le dernier du prefixe ou la taille si dernier = nblieux)
@@ -274,8 +276,16 @@ int enumererRegroupe(donnees *p, maillTrajet* debut){
   	--breakPt;
       }
       //Besoin de ça ici pour faire passer la premiere ligne sans tout faire sauter
-      if(breakPt<0)
+      if(breakPt<0){
 	++taille;
+	//Si pour la taille precedente on a rien garde
+	if(precmp == cmp){
+	  //On met la condition pour sortir du while
+	  //Aucuns chemin suivant ne sera dans les regroupements possibles
+	  taille  = nblieux;
+	}
+	precmp = cmp;
+      }
     }
     //Donc on a le bP
     //On cree le nouveau trajet
