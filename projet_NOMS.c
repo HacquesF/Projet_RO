@@ -56,14 +56,16 @@ typedef struct maillon{
   trajet* traj;//Oblige? pour l insertion des nouveau
   struct maillon* suiv;
 } maillTrajet;
-typedef struct {
-  maillTrajet* prem;
-} teteTrajet;
 //-------------Nb trajet totale possible Somme de i=1 a nblieux ( n!/(i!(n-i)!))-----------
 
 void freeTrajet(trajet* t){
   int i;
-  free(t->chemin);
+  if(t != NULL){
+    free(t->chemin);
+    t->chemin = NULL;
+  }
+  //free(t);
+  //t =NULL;
 }
 void freeMaill(maillTrajet* m){
   maillTrajet* cour;
@@ -71,12 +73,16 @@ void freeMaill(maillTrajet* m){
   cour = m->suiv;
   while(cour!=NULL){
     freeTrajet(cour->traj);
-    cour->traj = NULL;
-    //Faut il free le suiv, si oui comment
+    //Faut il free le suiv,
     prec = cour;
     cour = cour->suiv;
     free(prec);
+    prec->suiv = NULL;
+    prec =NULL;
   }
+  freeTrajet(m->traj);
+  //free(m);
+  //m = NULL;
 }
 //Calcul d un factoriel, necessaire au nombre de regroupement max
 int facto(int n){
@@ -227,6 +233,8 @@ int enumererRegroupe(donnees *p, maillTrajet* debut){
   /* return lesRegroup; */
   int remplissage;//Combien le drones aurait il d eau apres le passage sur le point courant
   trajet* prec;
+  trajet* AJeter;
+  AJeter = NULL;
   trajet* cour;
   maillTrajet* res;//Suit l endroit d insertion du trajet
   int acc;
@@ -298,15 +306,20 @@ int enumererRegroupe(donnees *p, maillTrajet* debut){
       ++acc;
     }
     //Est ce que mettre remplissage> p->capacite dans un "booleen" aiderait?
+    //if prec n est pas utilise le supprimer pour eviter les fuites
+    freeTrajet(AJeter);
+    AJeter = NULL;
     if(remplissage > p->capacite){
       //Cela veut dire que tout est bien rempli jusqu a i-1
       //ie: le prefixe chemin[0..i-1] depasse le reservoir mais pas chemin[0..i-2]
       //On veut donc que lors du prochain tour le bP tombe sur i-1 ou plus bas (suivant la config)
       //On rempli donc toutes les cases suivantes avec nblieux pour l obliger a traverser jusque i-1
       //BTW=> i-1 car il y a un ++i apres le remplissage, sinon a mettre dans le if, a voir
+      // freeTrajet(prec);
       for(acc = i;acc<taille;++acc){
 	cour->chemin[acc] = nblieux;
       }
+      AJeter = cour;
     }else{
       //Le chemin est acceptable, on le rajoute au resultat
       ++cmp;
@@ -314,13 +327,14 @@ int enumererRegroupe(donnees *p, maillTrajet* debut){
       res->traj = cour;
       cour->nbplace = taille;
       cour->longueur = 0;
-      //res->suiv = (maillTrajet*) malloc (sizeof (maillTrajet));
+      res->suiv = NULL;;
       Mprec->suiv = res;
       Mprec = res;
       //Le premier trajet est peut etre vide
     }
-    prec = cour;
+    prec = cour;    
   }
+  freeTrajet(AJeter);
   return cmp;
 }
 //Besoin d un completement nouveau vu que l on ne range plus de la meme maniere
@@ -640,7 +654,7 @@ int main(int argc, char *argv[])
 	    cour->traj->longueur = tmp;;
 	    nbCreux+= cour->traj->nbplace;
 	    /* puts(""); */
-	    //freeMaill(&permut);
+	    freeMaill(&permut);
 	  }else{
 	    printf("????");
 	  }
